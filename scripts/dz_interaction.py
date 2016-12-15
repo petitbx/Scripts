@@ -4,13 +4,6 @@ import serial
 import time
 import yaml
 
-from eth_rpc_client import Client
-client = Client(host="127.0.0.1", port="8545")
-
-ser = serial.Serial('/dev/ttyACM2', 9600) #to update
-relai4_status = 0
-lampStatus = 0
-
 
 def padhexa(s):
     return s[2:].zfill(64)
@@ -61,11 +54,20 @@ def turnRelay(relai):
             ser.write(str("4").encode())
             relai4_status = 0
 
+
 with open("parameters.yml", 'r') as stream:
     try:
         param = yaml.load(stream)
     except yaml.YAMLError as e:
         print(e)
+
+# connection to the relay
+ser = serial.Serial(param['relay']['serial'], 9600)
+
+
+# initialisation # to update
+relai4_status = 0
+lampStatus = 0
 
 
 # Defintion of pine used to update data
@@ -76,15 +78,23 @@ pinePswd = param[pine]['password']
 headers = {'Content-Type': 'application/json', }
 data = 'login=' + pineLogin + '&password=' + pinePswd
 
+# Connection to Ethereum
+host = 'http://' + param['contract']['node'] + ':8545'
+headers = {'Content-Type': 'application/json',}
+
 
 # initialiation de la lampe
 ## get the energy balance
-EnergyBalance = int(client.call(_from=param['pine2']['address'], to=param['contract']['address'],
-                                data=param['contract']['fctEnergyBalance'], block="latest"), 0)
-print('EnergyBalance = ' + str(EnergyBalance))
+data = '{"jsonrpc":"2.0",' \
+       '"method":"eth_call",' \
+       '"params":[{"from":"' + param[pine]['address'] + '","to":"' + param['contract']['address'] + '","data":"' + param['contract']['fctEnergyBalance'] + '"}, "latest"],' \
+       '"id":1}'
+result = requests.post(host, headers=headers, data=data)
+parsed_json = json.loads(result.text)
+EnergyBalance = int(parsed_json['result'], 0)
 
 if EnergyBalance >= param['pine2']['limit'] :
-    # on allume la lampe
+    # the bulb is on
     turnRelay("4")
     lampStatus = int(ser.read())
 
@@ -95,7 +105,7 @@ while 1:
     # delay to define
     time.sleep(20)
 
-    # récupération de l'énergie consommée ou produite
+    # getting energy produced or consumed
     time1 = getDateTime(pineURL, data, headers)
     sumWatt = getEnergySum(pineURL, data, headers, time0, time1)
 
@@ -110,23 +120,40 @@ while 1:
 
             # to update Energy balance (consumer)
             hashData = param['contract']['fctConsumeEnergy'] + padhexa(hex(sumWatt))
-            # DEBUG : using pine2 directly for test and debug
-            response = client.send_transaction(_from=param['pine2']['address'], to=param['contract']['address'], data=hashData)
+            data = '{"jsonrpc":"2.0",' \
+                   '"method":"eth_sendTransaction",' \
+                   '"params":[{"from":"' + param[pine]['address'] + '","to":"' + param['contract']['address'] + '","data":"' + hashData + '"}],' \
+                   '"id":1}'
+            result = requests.post(host, headers=headers, data=data)
+            parsed_json = json.loads(result.text)
+            print(parsed_json)
 
-            # get the energy balance
-            EnergyBalance = int(client.call(_from=param['pine2']['address'], to=param['contract']['address'], data=param['contract']['fctEnergyBalance'], block="latest"), 0)
-            print('EnergyBalance = ' + str(EnergyBalance))
+            # getting the energy balance
+            data = '{"jsonrpc":"2.0",' \
+                   '"method":"eth_call",' \
+                   '"params":[{"from":"' + param[pine]['address'] + '","to":"' + param['contract']['address'] + '","data":"' + param['contract']['fctEnergyBalance'] + '"}, "latest"],' \
+                    '"id":1}'
+            result = requests.post(host, headers=headers, data=data)
+            parsed_json = json.loads(result.text)
+            EnergyBalance = int(parsed_json['result'], 0)
 
             # if energy balance is too low, a energy transaction is triggered
-            if EnergyBalance < param['pine2']['limit']:
+            if EnergyBalance < param[pine]['limit']:
                 print(lampStatus)
                 if lampStatus == 1:
                     turnRelay("4")
                     lampStatus = int(ser.read())
                 watt = 350 # to adjust
+                # for debug pine1 is selected by default
                 seller = param['pine1']['address'].replace('0x', '')
                 hashData = param['contract']['fctBuyEnergy'] + padaddress(seller) + padhexa(hex(watt))
-                response = client.send_transaction(_from=param['pine2']['address'], to=param['contract']['address'], data=hashData)
+                data = '{"jsonrpc":"2.0",' \
+                       '"method":"eth_sendTransaction",' \
+                       '"params":[{"from":"' + param[pine]['address'] + '","to":"' + param['contract']['address'] + '","data":"' + hashData + '"}],' \
+                       '"id":1}'
+                result = requests.post(host, headers=headers, data=data)
+                parsed_json = json.loads(result.text)
+                print(parsed_json)
                 time.sleep(2)
                 turnRelay("4")
                 lampStatus = int(ser.read())
@@ -136,4 +163,10 @@ while 1:
         else:
             # to update Energy balance (producer)
             hashData = param['contract']['fctSetProduction'] + padhexa(hex(sumWatt))
-            response = client.send_transaction(_from=param['pine2']['address'], to=param['contract']['address'], data=hashData)
+            data = '{"jsonrpc":"2.0",' \
+                   '"method":"eth_sendTransaction",' \
+                   '"params":[{"from":"' + param[pine]['address'] + '","to":"' + param['contract']['address'] + '","data":"' + hashData + '"}],' \
+                   '"id":1}'
+            result = requests.post(host, headers=headers, data=data)
+            parsed_json = json.loads(result.text)
+            print(parsed_json)
