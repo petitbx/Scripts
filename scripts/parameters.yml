@@ -8,28 +8,31 @@ contract:
 pine1:
   address: '0x520f9b737b97a52945075dbf393d29adca000cca'
   url: 'http://192.168.0.40:8080'
-  typ: 'C'
+  sensorId: 1
+  typ: 'P'
   login: 'debian'
   password: 'debian'
   limit: 1000
   relay: 0
 pine2:
   address: '0x98181b49bf309364fba5d75ff57d30509b2a24fd'
-  url: 'http://192.168.0.29:8080'
-  typ: 'P'
-  login: 'debian'
-  password: 'debian'
+  url: 'http://192.168.0.49:8080'
+  sensorId: 1
+  typ: 'C'
+  login: 'pi'
+  password: 'pi'
   limit: 1000
   relay : 4
 pine3:
   address: '0x8915cf74dff23cbca59f356317098d4cf3d47203'
   url: 'http://192.168.0.xx:8080'
+  sensorId: 1
   typ: 'P'
   login: 'debian'
   password: 'debian'
   limit: 1000
   relay : 3
 usedPine:
-  id:  'pine1'
+  id:  'pine2'
 relay:
   serial: '/dev/ttyACM2'
