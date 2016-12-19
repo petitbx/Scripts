@@ -1,2 +1,3 @@
-# DzScripts
-script connecting CitizenWatt, Ethereum and Arduino relay
+# Scripts
+
+Script connecting CitizenWatt, Ethereum and Arduino relay. 
