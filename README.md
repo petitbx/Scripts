@@ -1,3 +1,3 @@
 # Scripts
 
-Script connecting CitizenWatt, Ethereum and Arduino relay. 
+The scripts connecting the CitizenWatt, Ethereum and Arduino relay. 
