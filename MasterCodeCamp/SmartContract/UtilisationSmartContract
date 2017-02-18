@@ -1,0 +1,34 @@
+Utilisation des fonctions :
+
+sendEther : daisee.sendEther.sendTransaction(seller.coinbase, {from: eth.coinbase, value: web3.toWei(coinvalue, "ether")})
+	  : mets a disposition des ethers sur le contrat pour le seller
+
+receiveEther : daisee.receiveEther.sendTransaction(eth.coinbase, {from:eth.coinbase})
+	  : récupère des ether propre a son coinbase a partir du contrat
+
+BuyEnergy : daisee.buyEnergy.sendTransaction(seller.coinbase, value, {from: eth.coinbase, value: web3.toWei(value, "ether")})}
+	  : achète de l’energie au seller
+
+ConsumeEnergy : daisee.consumeEnergy.sendTransaction(energy, {from:eth.coinbase})
+	  : consome de l’energie
+
+setProduction : daisee.setProduction.sendTransaction(energy, {from:eth.coinbase})
+	  : augmente l’énergie
+
+GetSent : daisee.getSent.call(seller.coinbase)
+	  : retourne le nombre d’ether propre au coinbase présent sur le contrat
+
+getEnergyBalance : daisee.getEnergyBalance.call()
+	  : retourne la valeur de l’énergie actuelle
+
+getEnergyConsumption : daisee.getEnergyConsumption.call()
+	  : retourne la valeur de l’énergie consomé
+
+getEnergyProduction : daisee.getEnergyProduction.call()
+	  : retourne la valeur de l’énergie produite
+
+getRate : daisee.getRate.call()
+	  : retourne le tarif de l’énergie
+
+getSent : daisee.getSent.call()
+	  : retourne la valeur des ether propre a son coinbase pour sent sur le contrat
