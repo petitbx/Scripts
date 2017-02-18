@@ -1,0 +1,129 @@
+pragma solidity ^0.4.0;
+
+contract WithdrawalContract {
+
+	 //Déclaration des variables du contrat :
+	 //ret : Valeur pour savoir si la transaction est passée ou non (1 => OK, 2 => KO)
+	 //rate : Valeur de change (prix du Kwh)
+	 //mostSent : Variable pour Stocker les ethers par Identifiant Client (coinbase)
+	 //energyProduction : Variable pour stocker la production du producteur
+	 //energyBalance : Connaitre la balance d’energie
+	 //energyConsumption : Connaitre la consommation d’un consommateur
+	 uint public ret;
+	 uint private rate;
+	 mapping (address => uint) mostSent;
+	 mapping (address => uint) energyProduction;
+	 mapping (address => uint) energyBalance;
+	 mapping (address => uint) energyConsumption;
+
+
+	 //Initialisation du contrat
+	 //ret = 0 car pas d’envoi a l’initialisation
+	 //rate fixée à 1 ether pour la démo.
+	 function WithdrawalContract() payable {
+		ret = 0;
+		rate = 1 ether;
+	 }
+
+	 event Prod(address from, uint kwh);
+	 event Cons(address from, uint energy);
+	 event Buy(address from, address to, uint energy);
+
+	 //Permet a un Producteur de mettre a jour sa production
+	 //Retourne EnergyBalance du producteur
+	 function setProduction(uint kwh) returns (uint EnergyBal) {
+		//Incrémentation de la production et donc de la balance
+		energyProduction[msg.sender] += kwh;
+		energyBalance[msg.sender] += kwh;
+		return energyBalance[msg.sender];
+		//event
+		Prod(msg.sender, kwh);
+	 }
+
+	 // fonction permettant de consommer de l'énergie
+	 // seul le propriétaire du compte peut mettre à jour sa prod
+	 function consumeEnergy (uint energy) returns (uint EnergyBal) {
+		  // on vérifie d'abord qu'il y a d'énergie
+		  if ( energy > energyBalance[msg.sender] ) throw;
+		  energyBalance[msg.sender]		-= energy;
+		  energyConsumption[msg.sender]		+= energy;
+		  // event
+		  Cons(msg.sender, energy);
+	 }
+
+
+	 //Fonction de debug pour tester si le send est passé
+	 function getReturn() returns (uint) {
+		  return ret;
+	 }
+
+
+	 //Fonction de Debug qui permet d’envoyer des ethers sur le smart contract
+	 function sendEther(address adrs) payable returns (bool) {
+		   mostSent[adrs] += msg.value;
+		   return true;
+	 }
+
+	 //Fonction de debug qui permet de retourner la valeur de son portefeuille sur le contrat
+	 function getSent(address adrs) returns (uint) {
+		   return mostSent[adrs];
+	 }
+
+	 //Fonction qui permet de récupérer les ethers d’un portefeuille client sur le contrat
+	 //Si le `send` fonctionne cela retourne True et applique ret à 1
+	 //Sinon, return False et applique ret à 2
+	 function receiveEther() payable returns (bool) {
+		    if (!msg.sender.send(mostSent[msg.sender]))
+		    {
+				ret = 2;
+				return false;
+		    }
+		    mostSent[msg.sender] = 0;
+		    ret = 1;
+		    return true;
+	 }
+
+
+	 //Permet d’acheter de l’énergie.
+	 function buyEnergy(address seller, uint energy) payable returns (bool transactionOK) {
+		    // on vérifie d'abord qu'il y a suffisamment d'énergie dispo
+		    if ( energy > energyBalance[seller] ) throw;
+		    // on verifie que l'acheteur a suffisamment de fond
+		    if ( (energy * rate ) > msg.sender.balance ) throw;
+		    // on met à jour les balances de chaque utilisateur
+		    energyBalance[msg.sender] += energy;
+		    energyBalance[seller]	-= energy;
+		    //On modifie le portefeuille du producteur
+		    mostSent[seller] += msg.value;
+		    //event
+		    Buy(msg.sender, seller, energy);
+	 }
+
+	 //fonction permettant de connaitre son EnergyBalance
+	 function getEnergyBalance() returns (uint energyBal) {
+		    return energyBalance[msg.sender];
+	 }
+
+	 // fonction permettant de connaitre sa production totale
+	 function getEnergyConsumption() returns (uint energyBal) {
+		    return energyConsumption[msg.sender];
+	 }
+
+	 // fonction permettant de connaitre le tarif de l'energie
+	 function getRate() returns (uint energyRate) {
+		    return rate;
+	 }
+
+	 //quantite vendue
+	 function getSold() returns (uint energySold) {
+		    energySold = energyProduction[msg.sender] - energyBalance[msg.sender];
+		    return energySold;
+	 }
+
+	 //argent gagné
+	 function getGain() returns (uint finneyGain) {
+		 finneyGain = getSold() * rate;
+		 return finneyGain;
+	 }
+
+}
